@@ -1,0 +1,97 @@
+# LiveKit Helm chart will set up a Deployment, Service, HPA, and Ingress as either
+# a single or multi-node LiveKit deployment.
+# After installing this chart, you would still need to
+# * Open ports on the firewall to the hosts (see https://docs.livekit.io/deploy/ports-firewall)
+# * Update DNS of hostnames to the ingress/service that were created
+
+replicaCount: 1
+
+livekit:
+  # port: 7880
+  # Uncomment to enable prometheus metrics
+  prometheus_port: 6789
+  log_level: info
+  rtc:
+    use_external_ip: true
+    # default ports used
+    port_range_start: 50000
+    port_range_end: 60000
+    tcp_port: 7801
+  redis:
+    address: REDIS_HOST
+    db: REDIS_DB
+    username: REDIS_USERNAME
+    password: REDIS_PASSWORD
+    use_tls: true
+  # one or more API key/secret pairs
+  # see https://docs.livekit.io/guides/getting-started/#generate-api-key-and-secret
+  keys:
+    API_KEY: "API_SECRET"
+  turn:
+    enabled: true
+    # must match domain of your tls cert
+    domain: TURN_DOMAIN
+    # tls_port must be 443 if turn load balancer is disabled
+    tls_port: 3478
+    # udp_port should be 443 for best connectivity through firewalls
+    udp_port: 443
+    secretName: SSL_CERT_SECRET_NAME
+    # valid values: disable, aws, gke, do
+    # tls cert and domain are required, even when load balancer is disabled
+    loadBalancerType: do
+  webhook:
+    api_key: API_KEY
+    urls:
+      - "API_ENDPOINT_URL"
+
+loadBalancer:
+  clusterIssuer: letsencrypt-prod
+  # valid values: disable, alb, aws, gke, gke-managed-cert, do
+  # on AWS, we recommend using alb load balancer, which supports TLS termination
+  # in order to use alb, aws-ingress-controller must be installed
+  # https://docs.aws.amazon.com/eks/latest/userguide/alb-ingress.html
+  # for gke-managed-cert type follow https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
+  # and set staticIpName to your reserved static IP
+  # for DO follow https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nginx-ingress-on-digitalocean-kubernetes-using-helm
+  # steps 2 and 4 to setup your ingress controller
+  type: do
+  # staticIpName: <nameofIpAddressCreated>
+  # Uncomment and enter host names if TLS is desired.
+  # TLS is not supported with `aws` load balancer
+  tls:
+    - hosts:
+        - API_DOMAIN
+      # with ALB, certificates needs to reside in ACM for self-discovery
+      # with GKE, specify one or more secrets to use for the certificate
+      # with DO, use cert-manager and create certificate for turn. Load balancer is autoamtic
+      # see: https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-multi-ssl#specifying_certificates_for_your_ingress
+      secretName: howlerssl-cm
+
+# when true (default), optimizes network stack for service
+# increases UDP send and receive buffers
+# optimizeNetwork: true
+
+# autoscaling requires resources to be defined
+autoscaling:
+  # set to true to enable autoscaling. when set, ignores replicaCount
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 60
+
+# if LiveKit should run only on specific nodes
+# this can be used to isolate designated nodes
+nodeSelector:
+  is-livekit-server-node-pool: "true"
+  # node.kubernetes.io/instance-type: c5.2xlarge
+
+resources:
+  {}
+  # Due to port restrictions, you can run only one instance of LiveKit per physical
+  # node. Because of that, we recommend giving it plenty of resources to work with
+  # limits:
+  #   cpu: 6000m
+  #   memory: 2048Mi
+  # requests:
+  #   cpu: 4000m
+  #   memory: 1024Mi
