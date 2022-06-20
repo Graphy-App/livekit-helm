@@ -1,29 +1,40 @@
 
-LiveKit's helm charts are published on S3.
+## Deployment Guide
 
-## Installing helm
+https://docs.livekit.io/deploy/kubernetes/
 
-Add it to your helm repo with:
 
-```shell
-helm repo add livekit https://helm.livekit.io
+## Config
+
+Edit `override.yaml` and fill variables
+  - REDIS_HOST
+  - REDIS_DB
+  - REDIS_USERNAME
+  - REDIS_PASSWORD
+  - API_KEY
+  - API_SECRET
+  - TURN_DOMAIN
+  - SSL_CERT_SECRET_NAME
+  - API_ENDPOINT_URL
+  - API_DOMAIN
+
+
+## Commands
+DEPLOYMENT_NAME
+ - Staging: `livekit-server-staging`
+ - Production: ``
+
+
+
+### Install Helm chart
+
+```
+helm install -f ./livekit-server/values.yaml -f override.yaml DEPLOYMENT_NAME ./livekit-server
 ```
 
-Customize values in values-sample.yaml
 
-Then install the chart
+### Upgrade Helm chart
 
-```shell
-helm install <instance_name> livekit/livekit-server --namespace <namespace> --values values.yaml
 ```
-
-## For LiveKit Helm developers
-
-Publishing requires helm-s3 plugin
-
-```shell
-helm plugin install https://github.com/hypnoglow/helm-s3.git
-AWS_REGION=us-east-1 helm repo add livekit s3://livekit-helm
-
-./deploy.sh
+helm upgrade -f ./livekit-server/values.yaml -f ./override.yaml DEPLOYMENT_NAME ./livekit-server
 ```
